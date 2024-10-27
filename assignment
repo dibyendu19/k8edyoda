@@ -1,1 +1,383 @@
+Post Training Assessment
+Replica Set
+
+In Kubernetes, a DaemonSet is a resource type used to ensure that a specific pod runs on every (or selected) node in a cluster. This is particularly useful for services or applications that provide node-level functionality, like monitoring agents, log collection daemons, or network proxies.
+
+
+
+Deployment
+
+To update a container's image in a Kubernetes Deployment while ensuring zero downtime, we can follow these steps. This will trigger a rolling update in which Kubernetes gradually replaces the current pod with a new pod running the updated image.
+
+a) First create the deployment with image version v1 with replicas=1
+b) Increase the replicas to two.
+c) Set minReadySeconds to 10 (greater than 0)
+d) Perform rolling update deployment to set the image from v1 to v2 and gradually replace v1 to v2
+
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# k apply -f kubia-deployment-and-service-v1_1replica.yaml
+deployment.apps/kubia created
+service/kubia created
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# k get deployments
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+kubia   1/1     1            1           4s
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# k get deployments -o wide
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES           SELECTOR
+kubia   1/1     1            1           11s   nodejs       luksa/kubia:v1   app=kubia
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments#
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments#
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# kubectl get deployment  kubia -o yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"kubia","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"kubia"}},"template":{"metadata":{"labels":{"app":"kubia"},"name":"kubia"},"spec":{"containers":[{"image":"luksa/kubia:v1","name":"nodejs"}]}}}}
+  creationTimestamp: "2024-10-27T05:33:57Z"
+  generation: 1
+  name: kubia
+  namespace: default
+  resourceVersion: "1085558"
+  uid: f403ab99-105e-4651-bdd7-55a0bc9fc3b0
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: kubia
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: kubia
+      name: kubia
+    spec:
+      containers:
+      - image: luksa/kubia:v1
+        imagePullPolicy: IfNotPresent
+        name: nodejs
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+status:
+  availableReplicas: 1
+  conditions:
+  - lastTransitionTime: "2024-10-27T05:33:59Z"
+    lastUpdateTime: "2024-10-27T05:33:59Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  - lastTransitionTime: "2024-10-27T05:33:57Z"
+    lastUpdateTime: "2024-10-27T05:33:59Z"
+    message: ReplicaSet "kubia-7c949bfdd6" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  observedGeneration: 1
+  readyReplicas: 1
+  replicas: 1
+  updatedReplicas: 1
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# kubectl scale deployment kubia --replicas=2
+deployment.apps/kubia scaled
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# k get deployments
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+kubia   2/2     2            2           3m24s
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# k get deployments -o wide
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES           SELECTOR
+kubia   2/2     2            2           3m29s   nodejs       luksa/kubia:v1   app=kubia
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# kubectl get deployment  kubia -o yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"kubia","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"kubia"}},"template":{"metadata":{"labels":{"app":"kubia"},"name":"kubia"},"spec":{"containers":[{"image":"luksa/kubia:v1","name":"nodejs"}]}}}}
+  creationTimestamp: "2024-10-27T05:33:57Z"
+  generation: 2
+  name: kubia
+  namespace: default
+  resourceVersion: "1085836"
+  uid: f403ab99-105e-4651-bdd7-55a0bc9fc3b0
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: kubia
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: kubia
+      name: kubia
+    spec:
+      containers:
+      - image: luksa/kubia:v1
+        imagePullPolicy: IfNotPresent
+        name: nodejs
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+status:
+  availableReplicas: 2
+  conditions:
+  - lastTransitionTime: "2024-10-27T05:33:57Z"
+    lastUpdateTime: "2024-10-27T05:33:59Z"
+    message: ReplicaSet "kubia-7c949bfdd6" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  - lastTransitionTime: "2024-10-27T05:37:00Z"
+    lastUpdateTime: "2024-10-27T05:37:00Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  observedGeneration: 2
+  readyReplicas: 2
+  replicas: 2
+  updatedReplicas: 2
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# kubectl get deployment  kubia -o yaml | grep -i status
+status:
+    status: "True"
+    status: "True"
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# kubectl get deployment  kubia -o yaml | grep -i minReady
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments#
+
+ kubectl patch deployment kubia -p '{"spec": {"minReadySeconds": 10}}'
+deployment.apps/kubia patched
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# kubectl get deployment  kubia -o yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"kubia","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"kubia"}},"template":{"metadata":{"labels":{"app":"kubia"},"name":"kubia"},"spec":{"containers":[{"image":"luksa/kubia:v1","name":"nodejs"}]}}}}
+  creationTimestamp: "2024-10-27T05:33:57Z"
+  generation: 3
+  name: kubia
+  namespace: default
+  resourceVersion: "1086019"
+  uid: f403ab99-105e-4651-bdd7-55a0bc9fc3b0
+spec:
+  minReadySeconds: 10
+  progressDeadlineSeconds: 600
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: kubia
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: kubia
+      name: kubia
+    spec:
+      containers:
+      - image: luksa/kubia:v1
+        imagePullPolicy: IfNotPresent
+        name: nodejs
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+status:
+  availableReplicas: 2
+  conditions:
+  - lastTransitionTime: "2024-10-27T05:33:57Z"
+    lastUpdateTime: "2024-10-27T05:33:59Z"
+    message: ReplicaSet "kubia-7c949bfdd6" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  - lastTransitionTime: "2024-10-27T05:37:00Z"
+    lastUpdateTime: "2024-10-27T05:37:00Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  observedGeneration: 3
+  readyReplicas: 2
+  replicas: 2
+  updatedReplicas: 2
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# kubectl get deployment  kubia -o yaml | grep -i minReady
+  minReadySeconds: 10
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# kubectl get deployment  kubia -o yaml | grep -i status
+status:
+    status: "True"
+    status: "True"
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# kubectl get deployment  kubia -o yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"kubia","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"kubia"}},"template":{"metadata":{"labels":{"app":"kubia"},"name":"kubia"},"spec":{"containers":[{"image":"luksa/kubia:v1","name":"nodejs"}]}}}}
+  creationTimestamp: "2024-10-27T05:33:57Z"
+  generation: 3
+  name: kubia
+  namespace: default
+  resourceVersion: "1086019"
+  uid: f403ab99-105e-4651-bdd7-55a0bc9fc3b0
+spec:
+  minReadySeconds: 10
+  progressDeadlineSeconds: 600
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: kubia
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: kubia
+      name: kubia
+    spec:
+      containers:
+      - image: luksa/kubia:v1
+        imagePullPolicy: IfNotPresent
+        name: nodejs
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+status:
+  availableReplicas: 2
+  conditions:
+  - lastTransitionTime: "2024-10-27T05:33:57Z"
+    lastUpdateTime: "2024-10-27T05:33:59Z"
+    message: ReplicaSet "kubia-7c949bfdd6" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  - lastTransitionTime: "2024-10-27T05:37:00Z"
+    lastUpdateTime: "2024-10-27T05:37:00Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  observedGeneration: 3
+  readyReplicas: 2
+  replicas: 2
+  updatedReplicas: 2
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# k get deployments -o wide
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES           SELECTOR
+kubia   2/2     2            2           5m54s   nodejs       luksa/kubia:v1   app=kubia
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments#
+
+kubectl set image deployment kubia nodejs=luksa/kubia:v2
+deployment.apps/kubia image updated
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# k get deployments -o wide
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES           SELECTOR
+kubia   2/2     1            2           6m1s   nodejs       luksa/kubia:v2   app=kubia
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# kubectl describe deploy kubia
+Name:                   kubia
+Namespace:              default
+CreationTimestamp:      Sun, 27 Oct 2024 05:33:57 +0000
+Labels:                 <none>
+Annotations:            deployment.kubernetes.io/revision: 2
+Selector:               app=kubia
+Replicas:               2 desired | 1 updated | 3 total | 2 available | 1 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        10
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=kubia
+  Containers:
+   nodejs:
+    Image:        luksa/kubia:v2
+    Port:         <none>
+    Host Port:    <none>
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    ReplicaSetUpdated
+OldReplicaSets:  kubia-7c949bfdd6 (2/2 replicas created)
+NewReplicaSet:   kubia-c559d8d8f (1/1 replicas created)
+Events:
+  Type    Reason             Age    From                   Message
+  ----    ------             ----   ----                   -------
+  Normal  ScalingReplicaSet  6m12s  deployment-controller  Scaled up replica set kubia-7c949bfdd6 to 1
+  Normal  ScalingReplicaSet  3m11s  deployment-controller  Scaled up replica set kubia-7c949bfdd6 to 2 from 1
+  Normal  ScalingReplicaSet  15s    deployment-controller  Scaled up replica set kubia-c559d8d8f to 1
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments# k get deployments -o wide
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES           SELECTOR
+kubia   3/2     2            2           6m23s   nodejs       luksa/kubia:v2   app=kubia
+root@ip-172-31-42-16:~/kubernetes-training/09-deployments#
+
+
+Service
+
+kubectl get svc <service-name> -o yaml
+kubectl get pods -l app=<app-label>
+kubectl describe pod <pod-name>
+kubectl logs <pod-name>
+kubectl exec -it <pod-name> -- netstat -tuln | grep 8000
+kubectl exec -it <pod-name> -- curl localhost:8000
+
+
+If these commands confirm the application isn’t listening, check the application configuration and redeploy if necessary.
+
+
+VOTING APP
+
+Deleting Voting Pod: terminates voting pod, at the same time creates another pod: No changes observed in the voting or Results field.
+Deleting worker pod, terminates worker pod, at the same time creates another worker pod, observation: Voting app container ID changes to that of new worker pod ID.
+Deleting DB pod: Similar observation, deleting terminiates DB pod, another db pod takes it position. The result app reset to 0 (from previous vote of 1), and then again, when new vote is casted, the result app displays the new vote.
+
+
+
+
+
+
 
